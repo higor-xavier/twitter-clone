@@ -3,11 +3,11 @@
 	namespace App\Models;
 	use MF\Model\Model;
 
-	class Usuario extends Model{
+	class Tweet extends Model{
 		private $id;
-		private $nome;
-		private $email;
-		private $senha;
+		private $id_usuario;
+		private $tweet;
+		private $data;
 
 		public function __get($atributo){
 			return $this->$atributo;
@@ -19,17 +19,34 @@
 
 		//salvar
 		public function salvar(){
-			$query = "INSERT INTO usuarios(nome, email, senha) VALUES (:nome, :email, :senha)";
+			$query = "INSERT INTO tweets(id_usuario, tweet) VALUES (:id_usuario, :tweet)";
 			$stmt = $this->db->prepare($query);
-			$stmt->bindValue(':nome', $this->__get('nome'));
-			$stmt->bindValue(':email', $this->__get('email'));
-			$stmt->bindValue(':senha', $this->__get('senha')); //md5 
+			$stmt->bindValue(':id_usuario', $this->__get('id_usuario'));
+			$stmt->bindValue(':tweet', $this->__get('tweet'));
 			$stmt->execute();
 
 			return $this;
 		}
 
-		//validar se um cadastro pode ser feito
+		//recuperar
+		public function getAll(){
+
+			$query = " 
+						SELECT t.id, t.id_usuario, t.tweet, DATE_FORMAT(t.data, '%d/%m/%Y %H:%i') AS data, u.nome 
+						FROM tweets AS t
+						LEFT JOIN usuarios AS u
+						ON t.id_usuario = u.id
+						WHERE id_usuario = :id_usuario
+						ORDER BY t.data DESC 
+					 ";
+			$stmt = $this->db->prepare($query);
+			$stmt->bindValue(':id_usuario', $this->__get('id_usuario'));
+			$stmt->execute();
+
+			return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+		}
+
+		//validar
 		public function validarCadastro(){
 			$valido = true;
 
@@ -47,21 +64,6 @@
 
 
 			return $valido;
-		}
-
-		//recuperar um usuário por e-mail
-		public function getUsuarioPorEmail(){
-
-			$query = " 
-						SELECT nome, email 
-						FROM usuarios 
-						WHERE email = :email
-					 ";
-			$stmt = $this->db->prepare($query);
-			$stmt->bindValue(':email', $this->__get('email'));
-			$stmt->execute();
-
-			return $stmt->fetchAll(\PDO::FETCH_ASSOC);
 		}
 
 		//autenticação do usuário
@@ -83,20 +85,6 @@
 				$this->__set('nome', $usuario['nome']);
 			}
 			return $this;
-		}
-
-		public function getAll(){
-
-			$query = " 
-						SELECT id, nome, email 
-						FROM usuarios
-						WHERE nome LIKE :nome
-					 ";
-			$stmt = $this->db->prepare($query);
-			$stmt->bindValue(':nome', '%'.$this->__get('nome').'%');
-			$stmt->execute();
-
-			return $stmt->fetchAll(\PDO::FETCH_ASSOC);
 		}
 	}
 
